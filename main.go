@@ -52,6 +52,7 @@ func main() {
 
 func readCsv(lines int) {
   file, err := os.Open("problems.csv") // For read access.
+  defer os.Exit(1)
 
   if err != nil {
     fmt.Println(err)
