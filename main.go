@@ -15,39 +15,42 @@ import (
   "encoding/csv"
   "flag"
   "fmt"
-  "strconv"
-  // "strings"
-  // "time"
   "io"
   "log"
   "os"
+  "strconv"
 )
 
-var linesLength string // -flag
 const FileLineLength = 100
+
+var quizSize int // -csv=
 
 func init() {
   const (
-    defaultGopher = "problems.csv"
+    defaultGopher = FileLineLength
     usage         = "a csv file in the format of (question,answer)"
   )
 
-  flag.StringVar(&linesLength, "csv", defaultGopher, usage)
+  flag.IntVar(&quizSize, "csv", defaultGopher, usage)
   flag.Parse()
 }
 
 func main() {
-  linesLength, err := strconv.Atoi(linesLength)
-  if err != nil {
-    fmt.Println(err)
+  if validateLength() {
     return
   }
-  if linesLength > FileLineLength {
-    fmt.Println("Use flag less than <", linesLength)
-    return
+  readCsv(quizSize)
+}
+
+func validateLength() bool {
+  status := quizSize > FileLineLength
+
+  if status {
+    fmt.Println("Use flag number less than <", quizSize)
+  } else {
+    fmt.Printf("Quiz has %d question(s)\n\n", quizSize)
   }
-  fmt.Printf("Quiz has %d question(s)\n\n", linesLength)
-  readCsv(linesLength)
+  return status
 }
 
 func readCsv(lines int) {
@@ -58,37 +61,39 @@ func readCsv(lines int) {
     fmt.Println(err)
   }
 
-  r := csv.NewReader(file)
+  questions := csv.NewReader(file)
+
+  var trueAnsers = make([]int, 0) // new slice of True ansers
 
   i := 0
-  var trueCount = make([]int, 0, 3) // new slice
   for i < lines {
-    record, err := r.Read()
+    expression, err := questions.Read()
     if err == io.EOF {
       break
     }
     if err != nil {
       log.Fatal(err)
     }
+    fmt.Printf("%s = ", expression[0])
 
-    fmt.Printf("%s = ", record[0])
-
-    var userAnswer int
-    fmt.Scan(&userAnswer)
-
-    answer, err := strconv.Atoi(record[1])
-    if err != nil {
-      fmt.Println(err)
-      return
+    if checkUserAnswer(expression[1]) {
+      trueAnsers = append(trueAnsers, 1)
     }
-
-    if answer == userAnswer {
-      trueCount = append(trueCount, 1)
-    }
-
     i++
   }
-  result(trueCount, i)
+  result(trueAnsers, i)
+}
+
+func checkUserAnswer(answer string) bool {
+  answer1, err := strconv.Atoi(answer)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  var userAns int
+  fmt.Scan(&userAns)
+
+  return answer1 == userAns
 }
 
 func result(rightAnswers []int, allQuestions int) {
