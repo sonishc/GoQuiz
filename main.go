@@ -55,10 +55,10 @@ func validateLength() bool {
 
 func readCsv(lines int) {
   file, err := os.Open("problems.csv") // For read access.
-  defer os.Exit(1)
 
   if err != nil {
     fmt.Println(err)
+    os.Exit(1)
   }
 
   questions := csv.NewReader(file)
@@ -99,5 +99,13 @@ func checkUserAnswer(answer string) bool {
 func result(rightAnswers []int, allQuestions int) {
   fmt.Println("\nAll questions = ", allQuestions)
   fmt.Println("Right:", len(rightAnswers))
-  fmt.Println("Result:", len(rightAnswers) > allQuestions/2)
+  isPassed(len(rightAnswers) > allQuestions/2)
+}
+
+func isPassed(summ bool) {
+  if summ {
+    fmt.Println("Result: Passed")
+  } else {
+    fmt.Println("Result: Failed")
+  }
 }
