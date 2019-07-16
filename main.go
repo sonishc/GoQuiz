@@ -19,19 +19,24 @@ import (
   "log"
   "os"
   "strconv"
+  "time"
 )
 
 const FileLineLength = 100
 
-var quizSize int // -csv=
+var quizSize int  // -csv=
+var timeLimit int // -csv=
 
 func init() {
   const (
-    defaultGopher = FileLineLength
-    usage         = "a csv file in the format of (question,answer)"
+    defaultLength = FileLineLength
+    lengthUsage   = "a csv file in the format of (question,answer)"
+    defaultTimer  = 5
+    timerUsage    = "a time in seconds to answer the questions"
   )
 
-  flag.IntVar(&quizSize, "csv", defaultGopher, usage)
+  flag.IntVar(&quizSize, "csv", defaultLength, lengthUsage)
+  flag.IntVar(&timeLimit, "limit", defaultTimer, timerUsage)
   flag.Parse()
 }
 
@@ -66,6 +71,8 @@ func readCsv(lines int) {
   var trueAnsers = make([]int, 0) // new slice of True ansers
 
   i := 0
+  timer := time.NewTimer(time.Duration(timeLimit) * time.Second)
+questionsloop:
   for i < lines {
     expression, err := questions.Read()
     if err == io.EOF {
@@ -76,24 +83,29 @@ func readCsv(lines int) {
     }
     fmt.Printf("%s = ", expression[0])
 
-    if checkUserAnswer(expression[1]) {
-      trueAnsers = append(trueAnsers, 1)
+    answerCh := make(chan int)
+    go func() {
+      var userAns int
+      fmt.Scan(&userAns)
+      answerCh <- userAns
+    }()
+
+    answerRight, err := strconv.Atoi(expression[1])
+    if err != nil {
+      log.Fatal(err)
+    }
+
+    select {
+    case <-timer.C:
+      break questionsloop
+    case answer := <-answerCh:
+      if answer == answerRight {
+        trueAnsers = append(trueAnsers, 1)
+      }
     }
     i++
   }
   result(trueAnsers, i)
-}
-
-func checkUserAnswer(answer string) bool {
-  answer1, err := strconv.Atoi(answer)
-  if err != nil {
-    log.Fatal(err)
-  }
-
-  var userAns int
-  fmt.Scan(&userAns)
-
-  return answer1 == userAns
 }
 
 func result(rightAnswers []int, allQuestions int) {
